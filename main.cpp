@@ -1,4 +1,4 @@
-#define VERSION_STRING "1.0.0.1"
+#define VERSION_STRING "1.0.0.2"
 #define TOOL_NAME "AmoveoMinerGpuCuda"
 
 #include <iostream>
@@ -42,8 +42,8 @@ using namespace std::chrono;
 
 using namespace utility;									// Common utilities like string conversions
 
-#define FETCH_WORK_INTERVAL_MS 5000
-#define SHOW_INTERVAL_MS 1000
+#define FETCH_WORK_INTERVAL_MS 9000
+#define SHOW_INTERVAL_MS 2000
 
 int gElapsedMilliSecMax = FETCH_WORK_INTERVAL_MS;
 
@@ -121,18 +121,30 @@ __device__ bool checkResult(unsigned char* h, size_t diff) {
 	return(((256 * y[0]) + y[1]) >= diff);
 }
 
-__global__ void sha256_kernel(unsigned char* out_input_string_nonce, unsigned char* out_found_hash, int *out_found, const unsigned char* in_input_string, size_t in_input_string_size, size_t blockDifficulty, size_t shareDifficulty, const unsigned char * pNonce) {
+__global__ void sha256_kernel(unsigned char* out_input_string_nonce, /*unsigned char* out_found_hash,*/ int *out_found, const unsigned char* in_input_string, size_t in_input_string_size, size_t blockDifficulty, size_t shareDifficulty, const unsigned char * pNonce) {
 	__shared__ unsigned char bhash[32];
-	__shared__ unsigned char baseNonce[32];
+	__shared__ unsigned char baseNonce[24];
 	__shared__ unsigned char diffA;
 	__shared__ unsigned char diffB;
+	__shared__ SHA256_CTX ctxShared;
+	__shared__ size_t blockDiff;
+	__shared__ size_t shareDiff;
 
 	// If this is the first thread of the block, init the input string in shared memory
 	if (threadIdx.x == 0) {
 		memcpy(bhash, in_input_string, in_input_string_size);
-		memcpy(baseNonce, pNonce, 32);
-		diffA = blockDifficulty / 256;
-		diffB = blockDifficulty % 256;
+		memcpy(baseNonce, pNonce, 24);
+
+		blockDiff = blockDifficulty;
+		diffA = blockDiff / 256;
+		diffB = blockDiff % 256;
+		shareDiff = shareDifficulty;
+
+		sha256_init(&ctxShared);
+		sha256_update(&ctxShared, bhash, 32);
+		sha256_update(&ctxShared, &diffA, 1);
+		sha256_update(&ctxShared, &diffB, 1);
+		sha256_update(&ctxShared, baseNonce, 24);
 	}
 
 	__syncthreads(); // Ensure the input string has been written in SMEM
@@ -141,18 +153,15 @@ __global__ void sha256_kernel(unsigned char* out_input_string_nonce, unsigned ch
 
 	unsigned char shaResult[32];
 	SHA256_CTX ctx;
-	sha256_init(&ctx);
-	sha256_update(&ctx, bhash, 32);
-	sha256_update(&ctx, &diffA, 1);
-	sha256_update(&ctx, &diffB, 1);
+	memcpy(&ctx, &ctxShared, 0x70);// sizeof(SHA256_CTX) = 0x70;
+
 	sha256_update(&ctx, (BYTE*)&currentBlockIdx, 8);
-	sha256_update(&ctx, baseNonce+8, 24);
 	sha256_final(&ctx, shaResult);
 	
-	if (checkResult(shaResult, shareDifficulty) && atomicExch(out_found, 1) == 0) {
-		memcpy(out_found_hash, shaResult, 32);
-		memcpy(out_input_string_nonce, (BYTE*)&currentBlockIdx, 8);
-		memcpy(out_input_string_nonce+8, baseNonce + 8, 24);
+	if (checkResult(shaResult, shareDiff) && atomicExch(out_found, 1) == 0) {
+		//memcpy(out_found_hash, shaResult, 32);
+		memcpy(out_input_string_nonce, baseNonce, 24);
+		memcpy(out_input_string_nonce+24, (BYTE*)&currentBlockIdx, 8);
 	}
 }
 
@@ -187,8 +196,8 @@ void print_state() {
 		t_last_updated = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double, std::milli> span = t2 - t1;
 		float ratio = span.count() / 1000;
-		std::cout << std::fixed << static_cast<uint64_t>(totalNonce / ratio) << " h/s S:" << totalSharesFound << " S/H:" << ((totalSharesFound *3600) / ratio) << std::endl;
-
+		//std::cout << std::fixed << static_cast<uint64_t>(totalNonce / ratio) << " h/s S:" << totalSharesFound << " S/H:" << ((totalSharesFound *3600) / ratio) << std::endl;
+		std::cout << std::fixed << static_cast<uint64_t>(totalNonce / ratio) << " h/s " << endl;
 	}
 }
 
@@ -274,7 +283,7 @@ int main(int argc, char* argv[])
 	t_last_work_fetch = std::chrono::high_resolution_clock::now();
 
 	MinerThreadData threadData;
-	threadData.nonce = vector<unsigned char>(32);
+	threadData.nonce = vector<unsigned char>(24);
 	std::generate(begin(threadData.nonce), end(threadData.nonce), std::ref(randomBytesEngine));
 
 	poolApi.GetWork(gPoolUrlW, &threadData, gMinerPublicKeyBase64);
@@ -293,12 +302,12 @@ int main(int argc, char* argv[])
 	{
 		*g_found = 0;
 		cudaMemcpy(d_in, &threadData.bhash[0], threadData.bhash.size(), cudaMemcpyHostToDevice);
-		cudaMemcpy(g_nonce, &threadData.nonce[0], 32, cudaMemcpyHostToDevice);
+		cudaMemcpy(g_nonce, &threadData.nonce[0], 24, cudaMemcpyHostToDevice);
 
 		pre_sha256();
 
 		while(true) {
-			sha256_kernel <<< gNumBlocks, gBlockSize, dynamic_shared_size >>> (g_out, g_hash_out, g_found, d_in, threadData.bhash.size(), threadData.blockDifficulty, threadData.shareDifficulty, g_nonce);
+			sha256_kernel <<< gNumBlocks, gBlockSize, dynamic_shared_size >>> (g_out, /*g_hash_out,*/ g_found, d_in, threadData.bhash.size(), threadData.blockDifficulty, threadData.shareDifficulty, g_nonce);
 
 			cudaError_t err = cudaDeviceSynchronize();
 			if (err != cudaSuccess) {
@@ -309,7 +318,7 @@ int main(int argc, char* argv[])
 			totalNonce += blocksPerKernel;
 			
 			std::generate(begin(threadData.nonce), end(threadData.nonce), std::ref(randomBytesEngine));
-			cudaMemcpy(g_nonce, &threadData.nonce[0], 32, cudaMemcpyHostToDevice);
+			cudaMemcpy(g_nonce, &threadData.nonce[0], 24, cudaMemcpyHostToDevice);
 
 			print_state();
 
@@ -317,9 +326,9 @@ int main(int argc, char* argv[])
 				poolApi.SubmitWork(gPoolUrlW, base64_encode(g_out, 32), gMinerPublicKeyBase64);
 				totalSharesFound++;
 				cout << "--- Found Share --- SDiff:" << threadData.shareDifficulty << endl;
-				print_hash(&threadData.nonce[0]);
-				print_hash(g_out);
-				print_hash(g_hash_out);
+				//print_hash(&threadData.nonce[0]);
+				//print_hash(g_out);
+				//print_hash(g_hash_out);
 			}
 			if (*g_found || isTimeToGetNewWork()) {
 				*g_found = 0;
