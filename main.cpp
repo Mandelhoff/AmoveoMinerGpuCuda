@@ -1,4 +1,4 @@
-#define VERSION_STRING "1.0.0.2"
+#define VERSION_STRING "1.0.0.3"
 #define TOOL_NAME "AmoveoMinerGpuCuda"
 
 #include <iostream>
@@ -121,7 +121,7 @@ __device__ bool checkResult(unsigned char* h, size_t diff) {
 	return(((256 * y[0]) + y[1]) >= diff);
 }
 
-__global__ void sha256_kernel(unsigned char* out_input_string_nonce, /*unsigned char* out_found_hash,*/ int *out_found, const unsigned char* in_input_string, size_t in_input_string_size, size_t blockDifficulty, size_t shareDifficulty, const unsigned char * pNonce) {
+__global__ void sha256_kernel(unsigned char* out_input_string_nonce, int *out_found, const unsigned char* in_input_string, size_t in_input_string_size, size_t blockDifficulty, size_t shareDifficulty, const unsigned char * pNonce) {
 	__shared__ unsigned char bhash[32];
 	__shared__ unsigned char baseNonce[24];
 	__shared__ unsigned char diffA;
@@ -157,7 +157,7 @@ __global__ void sha256_kernel(unsigned char* out_input_string_nonce, /*unsigned 
 
 	sha256_update(&ctx, (BYTE*)&currentBlockIdx, 8);
 	sha256_final(&ctx, shaResult);
-	
+
 	if (checkResult(shaResult, shareDiff) && atomicExch(out_found, 1) == 0) {
 		//memcpy(out_found_hash, shaResult, 32);
 		memcpy(out_input_string_nonce, baseNonce, 24);
@@ -208,7 +208,7 @@ void PrintWorkData(MinerThreadData * pThreadData)
 
 
 #define SHA_PER_ITERATIONS 8'388'608
-int gBlockSize = 256;
+int gBlockSize = 192;
 int gNumBlocks = 65536;//(SHA_PER_ITERATIONS + gBlockSize - 1) / gBlockSize;
 
 int main(int argc, char* argv[])
@@ -229,7 +229,7 @@ int main(int argc, char* argv[])
 		cout << endl;
 		cout << endl;
 		cout << "CudaDeviceId is optional. Default CudaDeviceId is 0" << endl;
-		cout << "BlockSize is optional. Default BlockSize is 256" << endl;
+		cout << "BlockSize is optional. Default BlockSize is 192" << endl;
 		cout << "NumBlocks is optional. Default NumBlocks is 65536" << endl;
 		cout << "PoolUrl is optional. Default PoolUrl is http://amoveopool.com/work" << endl;
 		return -1;
@@ -253,8 +253,14 @@ int main(int argc, char* argv[])
 	gPoolUrlW.resize(gPoolUrl.length(), L' ');
 	std::copy(gPoolUrl.begin(), gPoolUrl.end(), gPoolUrlW.begin());
 
+	// obtain a seed from a user string:
+	std::string str;
+	std::cout << "Please, enter a seed string (smash keys, then press enter): ";
+	std::getline(std::cin, str);
+	std::seed_seq seed1(str.begin(), str.end());
+
 	PoolApi poolApi;
-	std::independent_bits_engine<std::default_random_engine, 32, uint32_t> randomBytesEngine;
+	std::independent_bits_engine<std::default_random_engine, 32, uint32_t> randomBytesEngine(seed1);
 
 	cudaSetDevice(gDevicdeId);
 	//cudaDeviceSetCacheConfig(cudaFuncCachePreferShared);
@@ -307,7 +313,7 @@ int main(int argc, char* argv[])
 		pre_sha256();
 
 		while(true) {
-			sha256_kernel <<< gNumBlocks, gBlockSize, dynamic_shared_size >>> (g_out, /*g_hash_out,*/ g_found, d_in, threadData.bhash.size(), threadData.blockDifficulty, threadData.shareDifficulty, g_nonce);
+			sha256_kernel <<< gNumBlocks, gBlockSize, dynamic_shared_size >>> (g_out, g_found, d_in, threadData.bhash.size(), threadData.blockDifficulty, threadData.shareDifficulty, g_nonce);
 
 			cudaError_t err = cudaDeviceSynchronize();
 			if (err != cudaSuccess) {
@@ -328,7 +334,6 @@ int main(int argc, char* argv[])
 				cout << "--- Found Share --- SDiff:" << threadData.shareDifficulty << endl;
 				//print_hash(&threadData.nonce[0]);
 				//print_hash(g_out);
-				//print_hash(g_hash_out);
 			}
 			if (*g_found || isTimeToGetNewWork()) {
 				*g_found = 0;
