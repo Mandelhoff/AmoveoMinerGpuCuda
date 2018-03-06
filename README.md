@@ -31,7 +31,7 @@ Advanced Usage Template:
 AmoveoMinerGpuCuda.exe <Base64AmoveoAddress> <CudaDeviceId> <BlockSize> <NumBlocks> <PoolUrl>
 ```
 * CudaDeviceId is optional an defaults to 0.
-* BlockSize is optional and defaults to 256.
+* BlockSize is optional and defaults to 192.
 * NumBlocks is optional and defaults to 65536
 * PoolUrl is optional and defaults to http://amoveopool.com/work
 
