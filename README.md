@@ -2,11 +2,12 @@
 Amoveo Cryptocurrency Miner for Gpu work to be used with [AmoveoPool.com](http://AmoveoPool.com). This only works for Windows NVidia cards with Cuda.
 
 Tested Gpu Speeds:
-* GTX1060: 240 Mh/s
-* GTX1050: 171 Mh/s
-* Tesla K80: 151 Mh/s
-* 750TI: 101 Mh/s
-
+* GTX1080 TI: 780 Mh/s  - Suggested Numblocks: 192
+* GTX1060:    357 Mh/s  - Suggested Numblocks: 256
+* GTX1050:    171 Mh/s  - Suggested Numblocks: 256
+* Tesla K80:  151 Mh/s  - Suggested Numblocks: 512
+* 750TI:      133 Mh/s  - Suggested Numblocks: 256
+Try various Numblocks setting values. Optimal setting for that is very personal to your system. Try Numblock values like 128, 192, 256, or 512.
 
 ## Windows
 
@@ -28,11 +29,12 @@ AmoveoMinerGpuCuda.exe BPA3r0XDT1V8W4sB14YKyuu/PgC6ujjYooVVzq1q1s5b6CAKeu9oLfmxl
 
 Advanced Usage Template:
 ```
-AmoveoMinerGpuCuda.exe <Base64AmoveoAddress> <CudaDeviceId> <BlockSize> <NumBlocks> <PoolUrl>
+AmoveoMinerGpuCuda.exe <Base64AmoveoAddress> <CudaDeviceId> <BlockSize> <NumBlocks> <RandomSeed> <PoolUrl>
 ```
 * CudaDeviceId is optional an defaults to 0.
 * BlockSize is optional and defaults to 192.
 * NumBlocks is optional and defaults to 65536
+* RandomSeed is optional. Set this if you want multiple miners using the same address to avoid nonce collisions.
 * PoolUrl is optional and defaults to http://amoveopool.com/work
 
 
