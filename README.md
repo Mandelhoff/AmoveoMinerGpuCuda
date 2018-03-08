@@ -8,7 +8,7 @@ Tested Gpu Speeds:
 * Tesla K80:  151 Mh/s  - Suggested Numblocks: 512
 * 750TI:      133 Mh/s  - Suggested Numblocks: 256
 
-Try various Numblocks setting values. Optimal setting for that is very personal to your system. Try Numblock values like 128, 192, 256, or 512.
+Try various Numblocks setting values. Optimal setting for Numblocks is very personal to your system. Try Numblock values like 128, 192, 256, or 512.
 
 ## Windows
 
