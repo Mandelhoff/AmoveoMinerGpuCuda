@@ -33,7 +33,7 @@ Advanced Usage Template:
 AmoveoMinerGpuCuda.exe <Base64AmoveoAddress> <CudaDeviceId> <BlockSize> <NumBlocks> <RandomSeed> <PoolUrl>
 ```
 * CudaDeviceId is optional an defaults to 0.
-* BlockSize is optional and defaults to 192.
+* BlockSize is optional and defaults to 256.
 * NumBlocks is optional and defaults to 65536
 * RandomSeed is optional. Set this if you want multiple miners using the same address to avoid nonce collisions.
 * PoolUrl is optional and defaults to http://amoveopool.com/work
