@@ -58,7 +58,7 @@ void PoolApi::SubmitWork(string_t poolUrl, string nonceBase64, string minerPubli
 			wstring responseString(responseData.begin(), responseData.end());
 
 			if (successResponse.compare(responseString) != 0) {
-				wcout << "!!! ERROR: SubmitWork Response: " << responseString << endl;
+				wcout << "Info: " << responseString << endl;
 			}
 		}
 	}
@@ -68,7 +68,7 @@ void PoolApi::SubmitWork(string_t poolUrl, string nonceBase64, string minerPubli
 	return;
 }
 
-void PoolApi::GetWork(string_t poolUrl, MinerThreadData * pMinerThreadData, string minerPublicKeyBase64)
+void PoolApi::GetWork(string_t poolUrl, WorkData * pMinerThreadData, string minerPublicKeyBase64)
 {
 	bool success = false;
 	do {
@@ -97,8 +97,6 @@ void PoolApi::GetWork(string_t poolUrl, MinerThreadData * pMinerThreadData, stri
 				string bhashString = base64_decode(bhashBase64);
 				vector<unsigned char> bhash(bhashString.begin(), bhashString.end());
 				pMinerThreadData->bhash = bhash;
-
-				///		pMinerThreadData->nonce = vector<unsigned char>(32);// bhash;
 
 				int blockDifficulty = dataArray[1].at(2).as_integer();
 				pMinerThreadData->blockDifficulty = blockDifficulty;
