@@ -12,10 +12,10 @@ Default BlockSize is now 64.
 Default NumBlocks is now 96.
 
 Best for me:
-Gtx1060: BlockSize=64, NumBlocks=96
-Gtx1050: BlockSize=64, NumBlocks=64
-Tesla K80: BlockSize=128, NumBlocks=128
-750Ti: BlockSize=32, NumBlocks=64
+* Gtx1060: BlockSize=64, NumBlocks=96
+* Gtx1050: BlockSize=64, NumBlocks=64
+* Tesla K80: BlockSize=128, NumBlocks=128
+* 750Ti: BlockSize=32, NumBlocks=64
 
 Try various BlockSize setting values. Optimal setting for BlockSize is very personal to your system. Try BlockSize values like 96, 64, 32, or 128. A higher BlockSize is almost always better, but too high will crash the miner.
 
