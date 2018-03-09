@@ -1,4 +1,4 @@
-#define VERSION_STRING "1.0.0.6"
+#define VERSION_STRING "1.0.0.7"
 #define TOOL_NAME "AmoveoMinerGpuCuda"
 
 #include <iostream>
@@ -121,15 +121,12 @@ __device__ bool checkResult(unsigned char* h, size_t diff) {
 }
 
 #define SUFFIX_MAX 65536
-//#define SUFFIX_MAX 16 // 16 is mini version
 
-//extern __shared__ SHA256_CTX ctxArray[];
-__global__ void sha256_kernel(unsigned char * out_nonce, int *out_found, const SHA256_CTX * in_ctx, uint64_t nonceOffset, int shareDiff)
+__global__ void sha256_kernel(unsigned char * out_nonce, int *out_found, const SHA256_CTX * in_ctx, uint64_t nonceOffset, int shareDiff, int suffixMax)
 {
 	__shared__ SHA256_CTX ctxShared;
 	__shared__ int diff;
 	__shared__ uint64_t nonceOff;
-	// __shared__ SHA256_CTX ctxArray[32];
 
 	// If this is the first thread of the block, init the input string in shared memory
 	if (threadIdx.x == 0) {
@@ -146,28 +143,19 @@ __global__ void sha256_kernel(unsigned char * out_nonce, int *out_found, const S
 	SHA256_CTX ctxReuse;
 	memcpy(&ctxReuse, &ctxShared, 0x70);
 	sha256_update(&ctxReuse, (BYTE*)&currentBlockIdx, 6);
-	//memcpy(&ctxArray[threadIndex], &ctxReuse, 0x70);
+	sha256_updateAmoveoSpecial(&ctxReuse);
 
 	SHA256_CTX ctxTmp;
 	int nonceSuffix = 0;
-	for (nonceSuffix = 0; nonceSuffix < SUFFIX_MAX; nonceSuffix++) {
+	for (nonceSuffix = 0; nonceSuffix < suffixMax; nonceSuffix++) {
 		memcpy(&ctxTmp, &ctxReuse, 0x70);
-
-		sha256_update(&ctxTmp, (BYTE*)&nonceSuffix, 2);
-		sha256_final(&ctxTmp, shaResult);
+		sha256_finalAmoveo(&ctxTmp, (BYTE*)&nonceSuffix, shaResult);
 		if (checkResult(shaResult, diff) && atomicExch(out_found, 1) == 0) {
 			memcpy(out_nonce, &currentBlockIdx, 6);
 			memcpy(out_nonce + 6, &nonceSuffix, 2);
 			return;
 		}
 	}
-	/*
-	sha256_update(&ctx, (BYTE*)&currentBlockIdx, 8);
-	sha256_final(&ctx, shaResult);
-
-	if (checkResult(shaResult, diff) && atomicExch(out_found, 1) == 0) {
-		memcpy(out_nonce, &currentBlockIdx, 8);
-	}*/
 }
 
 __global__ void sha256Init_kernel(unsigned char * out_ctx, unsigned char * bhash, unsigned char * noncePart, int diff)
@@ -222,7 +210,6 @@ void print_state() {
 		t_last_updated = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double, std::milli> span = t2 - t1;
 		float ratio = span.count() / 1000;
-		//std::cout << std::fixed << static_cast<uint64_t>(gTotalNonce / ratio) << " h/s S:" << totalSharesFound << " S/H:" << ((totalSharesFound *3600) / ratio) << std::endl;
 		std::cout << std::fixed << static_cast<uint64_t>(gTotalNonce / ratio) << " h/s " << endl;
 	}
 }
@@ -295,6 +282,7 @@ static void submitwork_thread(unsigned char * nonceSolution)
 
 int gBlockSize = 64;
 int gNumBlocks = 96;
+int gSuffixMax = 65536;
 std::string gSeedStr("ImAraNdOmStrInG");
 
 int main(int argc, char* argv[])
@@ -302,7 +290,7 @@ int main(int argc, char* argv[])
 	cout << TOOL_NAME << " v" << VERSION_STRING << endl;
 	if (argc <= 1) {
 		cout << "Example Template: " << endl;
-		cout << argv[0] << " " << "<Base64AmoveoAddress>" << " " << "<CudaDeviceId>" << " " << "<BlockSize>" << " " << "<NumBlocks>" << " " << "<SeedString>" << " " << "<PoolUrl>" << endl;
+		cout << argv[0] << " " << "<Base64AmoveoAddress>" << " " << "<CudaDeviceId>" << " " << "<BlockSize>" << " " << "<NumBlocks>" << " " << "<SeedString>" << " " << "<SuffixMax>" << " " << "<PoolUrl>" << endl;
 
 		cout << endl;
 		cout << "Example Usage: " << endl;
@@ -310,14 +298,15 @@ int main(int argc, char* argv[])
 
 		cout << endl;
 		cout << "Advanced Example Usage: " << endl;
-		cout << argv[0] << " " << MINER_ADDRESS << " " << DEFAULT_DEVICE_ID << " " << gBlockSize << " " << gNumBlocks << " " << "RandomSeed" << " " << POOL_URL << endl;
+		cout << argv[0] << " " << MINER_ADDRESS << " " << DEFAULT_DEVICE_ID << " " << gBlockSize << " " << gNumBlocks << " " << "RandomSeed" << " " << "65536" << " " << POOL_URL << endl;
 
 		cout << endl;
 		cout << endl;
 		cout << "CudaDeviceId is optional. Default CudaDeviceId is 0" << endl;
 		cout << "BlockSize is optional. Default BlockSize is 64" << endl;
 		cout << "NumBlocks is optional. Default NumBlocks is 96" << endl;
-		cout << "RandomSeed is option. No default." << endl;
+		cout << "RandomSeed is optional. No default." << endl;
+		cout << "SuffixMax is optional. Default is 65536" << endl;
 		cout << "PoolUrl is optional. Default PoolUrl is http://amoveopool.com/work" << endl;
 		return -1;
 	}
@@ -337,7 +326,10 @@ int main(int argc, char* argv[])
 		gSeedStr = argv[5];
 	}
 	if (argc >= 7) {
-		gPoolUrl = argv[6];
+		gSuffixMax = atoi(argv[6]);
+	}
+	if (argc >= 8) {
+		gPoolUrl = argv[7];
 	}
 
 	gPoolUrlW.resize(gPoolUrl.length(), L' ');
@@ -374,10 +366,11 @@ int main(int argc, char* argv[])
 //	size_t dynamic_shared_size = sizeof(SHA256_CTX) * gBlockSize + sizeof(SHA256_CTX) + sizeof(uint64_t) + sizeof(int);// +(64 * gBlockSize);
 //	std::cout << "Shared memory is " << dynamic_shared_size << "B" << std::endl;
 
-	const int blocksPerKernel = gNumBlocks * gBlockSize;
-	const int hashesPerKernel = blocksPerKernel * SUFFIX_MAX;
+	const uint64_t blocksPerKernel = gNumBlocks * gBlockSize;
+	const uint64_t hashesPerKernel = blocksPerKernel * gSuffixMax;
 	cout << "blockSize: " << gBlockSize << endl;
 	cout << "numBlocks: " << gNumBlocks << endl;
+	cout << "suffixMax: " << gSuffixMax << endl;
 
 	pre_sha256();
 
@@ -403,7 +396,7 @@ int main(int argc, char* argv[])
 
 	while (true) {
 
-		sha256_kernel << < gNumBlocks, gBlockSize >> > (g_out, g_found, d_ctx, nonceOffset, shareDiff);
+		sha256_kernel << < gNumBlocks, gBlockSize >> > (g_out, g_found, d_ctx, nonceOffset, shareDiff, gSuffixMax);
 
 		cudaError_t err = cudaDeviceSynchronize();
 		if (err != cudaSuccess) {
