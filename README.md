@@ -55,3 +55,8 @@ AmoveoMinerGpuCuda.exe <Base64AmoveoAddress> <CudaDeviceId> <BlockSize> <NumBloc
 ### Build
 The Windows releases are built with Visual Studio 2015 with Cuda, RestCPP, boost, and openSSL.
 
+
+
+Donations are welcome:
+* Amoveo - BPA3r0XDT1V8W4sB14YKyuu/PgC6ujjYooVVzq1q1s5b6CAKeu9oLfmxlplcPd+34kfZ1qx+Dwe3EeoPu0SpzcI=
+* Ethereum - 0x74e0aF0522024f2dd94F0fb9B82d13782ECCaaF5
