@@ -2,13 +2,26 @@
 Amoveo Cryptocurrency Miner for Gpu work to be used with [AmoveoPool.com](http://AmoveoPool.com). This only works for Windows NVidia cards with Cuda.
 
 Tested Gpu Speeds:
-* GTX1080 TI: 780 Mh/s  - Suggested BlockSize: 192
-* GTX1060:    357 Mh/s  - Suggested BlockSize: 256
-* GTX1050:    171 Mh/s  - Suggested BlockSize: 256
-* Tesla K80:  151 Mh/s  - Suggested BlockSize: 512
-* 750TI:      133 Mh/s  - Suggested BlockSize: 256
+* GTX1080 TI: ?? Mh/s  - Suggested BlockSize: ?
+* GTX1060:    458 Mh/s  - Suggested BlockSize: 64
+* GTX1050:    271 Mh/s  - Suggested BlockSize: 64
+* Tesla K80:  250 Mh/s  - Suggested BlockSize: 128
+* 750TI:      177 Mh/s  - Suggested BlockSize: 32
 
-Try various BlockSize setting values. Optimal setting for BlockSize is very personal to your system. Try BlockSize values like 128, 192, 256, or 512.
+Default BlockSize is now 64.
+Default NumBlocks is now 96.
+
+Best for me:
+Gtx1060: BlockSize=64, NumBlocks=96
+Gtx1050: BlockSize=64, NumBlocks=64
+Tesla K80: BlockSize=128, NumBlocks=128
+750Ti: BlockSize=32, NumBlocks=64
+
+Try various BlockSize setting values. Optimal setting for BlockSize is very personal to your system. Try BlockSize values like 96, 64, 32, or 128. A higher BlockSize is almost always better, but too high will crash the miner.
+
+If your Memory Controller Load is constantly at 100%, you may want to try lowering your NumBlocks.
+
+
 
 ## Windows
 
