@@ -51,7 +51,7 @@ AmoveoMinerGpuCuda.exe <Base64AmoveoAddress> <CudaDeviceId> <BlockSize> <NumBloc
 * BlockSize is optional and defaults to 256.
 * NumBlocks is optional and defaults to 65536
 * RandomSeed is optional. Set this if you want multiple miners using the same address to avoid nonce collisions.
-* SuffixMax optinoal and defaults to 65536. Do NOT use anything higher than 65536. Lower numbers reduce OS lag and will reduce hash rate by a few percent.
+* SuffixMax optional and defaults to 65536. Do NOT use anything higher than 65536. Lower numbers reduce OS lag and will reduce hash rate by a few percent.
 * PoolUrl is optional and defaults to http://amoveopool.com/work
 
 
