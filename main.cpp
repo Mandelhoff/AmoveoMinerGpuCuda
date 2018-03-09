@@ -1,4 +1,4 @@
-#define VERSION_STRING "1.0.0.4"
+#define VERSION_STRING "1.0.0.6"
 #define TOOL_NAME "AmoveoMinerGpuCuda"
 
 #include <iostream>
@@ -120,11 +120,16 @@ __device__ bool checkResult(unsigned char* h, size_t diff) {
 	return(((256 * y[0]) + y[1]) >= diff);
 }
 
+#define SUFFIX_MAX 65536
+//#define SUFFIX_MAX 16 // 16 is mini version
+
+//extern __shared__ SHA256_CTX ctxArray[];
 __global__ void sha256_kernel(unsigned char * out_nonce, int *out_found, const SHA256_CTX * in_ctx, uint64_t nonceOffset, int shareDiff)
 {
 	__shared__ SHA256_CTX ctxShared;
 	__shared__ int diff;
 	__shared__ uint64_t nonceOff;
+	// __shared__ SHA256_CTX ctxArray[32];
 
 	// If this is the first thread of the block, init the input string in shared memory
 	if (threadIdx.x == 0) {
@@ -134,18 +139,35 @@ __global__ void sha256_kernel(unsigned char * out_nonce, int *out_found, const S
 	}
 	__syncthreads(); // Ensure the input string has been written in SMEM
 
+	unsigned int threadIndex = threadIdx.x;
 	uint64_t currentBlockIdx = blockIdx.x * blockDim.x + threadIdx.x + nonceOff;
 
 	unsigned char shaResult[32];
-	SHA256_CTX ctx;
-	memcpy(&ctx, &ctxShared, 0x70);
+	SHA256_CTX ctxReuse;
+	memcpy(&ctxReuse, &ctxShared, 0x70);
+	sha256_update(&ctxReuse, (BYTE*)&currentBlockIdx, 6);
+	//memcpy(&ctxArray[threadIndex], &ctxReuse, 0x70);
 
+	SHA256_CTX ctxTmp;
+	int nonceSuffix = 0;
+	for (nonceSuffix = 0; nonceSuffix < SUFFIX_MAX; nonceSuffix++) {
+		memcpy(&ctxTmp, &ctxReuse, 0x70);
+
+		sha256_update(&ctxTmp, (BYTE*)&nonceSuffix, 2);
+		sha256_final(&ctxTmp, shaResult);
+		if (checkResult(shaResult, diff) && atomicExch(out_found, 1) == 0) {
+			memcpy(out_nonce, &currentBlockIdx, 6);
+			memcpy(out_nonce + 6, &nonceSuffix, 2);
+			return;
+		}
+	}
+	/*
 	sha256_update(&ctx, (BYTE*)&currentBlockIdx, 8);
 	sha256_final(&ctx, shaResult);
 
 	if (checkResult(shaResult, diff) && atomicExch(out_found, 1) == 0) {
 		memcpy(out_nonce, &currentBlockIdx, 8);
-	}
+	}*/
 }
 
 __global__ void sha256Init_kernel(unsigned char * out_ctx, unsigned char * bhash, unsigned char * noncePart, int diff)
@@ -234,7 +256,7 @@ static bool getwork_thread(std::seed_seq &seed)
 			cudaMemcpy(d_bhash, &gWorkData.bhash[0], 32, cudaMemcpyHostToDevice);
 			cudaMemcpy(d_nonce, &gWorkData.nonce[0], 24, cudaMemcpyHostToDevice);
 
-			sha256Init_kernel <<< 1, 1 >>> (outCtx, d_bhash, d_nonce, gWorkData.blockDifficulty);
+			sha256Init_kernel << < 1, 1 >> > (outCtx, d_bhash, d_nonce, gWorkData.blockDifficulty);
 
 			cudaError_t err = cudaDeviceSynchronize();
 			if (err != cudaSuccess) {
@@ -250,7 +272,8 @@ static bool getwork_thread(std::seed_seq &seed)
 			mutexWorkData.unlock();
 
 			std::cout << "New Work ||" << "BDiff:" << gWorkData.blockDifficulty << " SDiff:" << gWorkData.shareDifficulty << endl;
-		} else {
+		}
+		else {
 			// Even if new work is not available, shareDiff will likely change. Need to adjust, else will get a "low diff share" error.
 			gWorkData.shareDifficulty = workDataNew.shareDifficulty;
 		}
@@ -270,9 +293,8 @@ static void submitwork_thread(unsigned char * nonceSolution)
 	cout << "--- Found Share --- " << endl;
 }
 
-#define SHA_PER_ITERATIONS 8'388'608
-int gBlockSize = 256;
-int gNumBlocks = 65536;//(SHA_PER_ITERATIONS + gBlockSize - 1) / gBlockSize;
+int gBlockSize = 64;
+int gNumBlocks = 96;
 std::string gSeedStr("ImAraNdOmStrInG");
 
 int main(int argc, char* argv[])
@@ -293,8 +315,8 @@ int main(int argc, char* argv[])
 		cout << endl;
 		cout << endl;
 		cout << "CudaDeviceId is optional. Default CudaDeviceId is 0" << endl;
-		cout << "BlockSize is optional. Default BlockSize is 256" << endl;
-		cout << "NumBlocks is optional. Default NumBlocks is 65536" << endl;
+		cout << "BlockSize is optional. Default BlockSize is 64" << endl;
+		cout << "NumBlocks is optional. Default NumBlocks is 96" << endl;
 		cout << "RandomSeed is option. No default." << endl;
 		cout << "PoolUrl is optional. Default PoolUrl is http://amoveopool.com/work" << endl;
 		return -1;
@@ -317,7 +339,6 @@ int main(int argc, char* argv[])
 	if (argc >= 7) {
 		gPoolUrl = argv[6];
 	}
-	cout << "gNumBlocks = " << gNumBlocks << endl;
 
 	gPoolUrlW.resize(gPoolUrl.length(), L' ');
 	std::copy(gPoolUrl.begin(), gPoolUrl.end(), gPoolUrlW.begin());
@@ -348,14 +369,16 @@ int main(int argc, char* argv[])
 
 	future<bool> getWorkThread = std::async(std::launch::async, getwork_thread, std::ref(seed));
 
+
 	// Assuming bhash and nonce are fixed size, so dynamic_shared_size should never change across work units
-	size_t dynamic_shared_size = sizeof(SHA256_CTX) + sizeof(uint64_t) + sizeof(int);// +(64 * gBlockSize);
-	std::cout << "Shared memory is " << dynamic_shared_size << "B" << std::endl;
+//	size_t dynamic_shared_size = sizeof(SHA256_CTX) * gBlockSize + sizeof(SHA256_CTX) + sizeof(uint64_t) + sizeof(int);// +(64 * gBlockSize);
+//	std::cout << "Shared memory is " << dynamic_shared_size << "B" << std::endl;
 
 	const int blocksPerKernel = gNumBlocks * gBlockSize;
+	const int hashesPerKernel = blocksPerKernel * SUFFIX_MAX;
 	cout << "blockSize: " << gBlockSize << endl;
 	cout << "numBlocks: " << gNumBlocks << endl;
-	
+
 	pre_sha256();
 
 	uint64_t nonceOffset = 0;
@@ -378,9 +401,9 @@ int main(int argc, char* argv[])
 	t_last_updated = std::chrono::high_resolution_clock::now();
 	t_last_work_fetch = std::chrono::high_resolution_clock::now();
 
-	while(true) {
+	while (true) {
 
-		sha256_kernel <<< gNumBlocks, gBlockSize, dynamic_shared_size >>> (g_out, g_found, d_ctx, nonceOffset, shareDiff);
+		sha256_kernel << < gNumBlocks, gBlockSize >> > (g_out, g_found, d_ctx, nonceOffset, shareDiff);
 
 		cudaError_t err = cudaDeviceSynchronize();
 		if (err != cudaSuccess) {
@@ -407,7 +430,7 @@ int main(int argc, char* argv[])
 			cudaMemcpy(g_found, &found, 1, cudaMemcpyHostToDevice);
 		}
 
-		gTotalNonce += blocksPerKernel;
+		gTotalNonce += hashesPerKernel;
 		nonceOffset += blocksPerKernel;
 
 		if (gWorkData.HasNewWork())
@@ -444,4 +467,3 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
-
