@@ -3,7 +3,7 @@ Amoveo Cryptocurrency Miner for Gpu work to be used with [AmoveoPool.com](http:/
 
 Tested Gpu Speeds:
 * Tesla P100: 1920 Mh/s  - Suggested BlockSize: 192, Numblocks: 168
-* GTX1080 TI: 1500 Mh/s  - Suggested BlockSize: ?
+* GTX1080 TI: 2200 Mh/s  - Suggested BlockSize: 96, Numblocks: 168
 * GTX1060 6GB: 901 Mh/s  - Suggested BlockSize: 64
 * GTX1050:    430 Mh/s  - Suggested BlockSize: 64
 * Tesla K80:  301 Mh/s  - Suggested BlockSize: 128
