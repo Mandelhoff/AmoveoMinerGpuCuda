@@ -5,7 +5,7 @@ Tested Gpu Speeds:
 * Tesla P100: 1920 Mh/s  - Suggested BlockSize: 192, Numblocks: 168
 * GTX1080 TI: 1500 Mh/s  - Suggested BlockSize: ?
 * GTX1060 6GB: 901 Mh/s  - Suggested BlockSize: 64
-* GTX1050:    396 Mh/s  - Suggested BlockSize: 64
+* GTX1050:    430 Mh/s  - Suggested BlockSize: 64
 * Tesla K80:  301 Mh/s  - Suggested BlockSize: 128
 * 750TI:      238 Mh/s  - Suggested BlockSize: 32
 
@@ -19,7 +19,7 @@ Default SuffixMax is 65536.
 
 Best Settings from My Tests:
 * Gtx1060: BlockSize=64, NumBlocks=96
-* Gtx1050: BlockSize=64, NumBlocks=64
+* Gtx1050: BlockSize=64, NumBlocks=90
 * Tesla K80: BlockSize=128, NumBlocks=128
 * 750Ti: BlockSize=32, NumBlocks=64
 
