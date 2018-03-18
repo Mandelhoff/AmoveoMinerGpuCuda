@@ -3,13 +3,13 @@ Amoveo Cryptocurrency Miner for Gpu work to be used with [AmoveoPool.com](http:/
 
 Tested Gpu Speeds:
 
-* Tesla V100: 3900 Mh/s  - Suggested BlockSize: 1024, Numblocks: 64
-* Tesla P100: 1920 Mh/s  - Suggested BlockSize: 192, Numblocks: 168
-* GTX1080 TI: 2200 Mh/s  - Suggested BlockSize: 96, Numblocks: 168
-* GTX1060 6GB: 901 Mh/s  - Suggested BlockSize: 64
-* GTX1050:    430 Mh/s  - Suggested BlockSize: 64
-* Tesla K80:  301 Mh/s  - Suggested BlockSize: 128
-* 750TI:      238 Mh/s  - Suggested BlockSize: 32
+* Tesla V100:  ??? Mh/s  - Suggested BlockSize: 1024, Numblocks: 64
+* Tesla P100:  ??? Mh/s  - Suggested BlockSize: 192, Numblocks: 168
+* GTX1080 TI:  2900 Mh/s  - Suggested BlockSize: 96, Numblocks: 168
+* GTX1060 6GB: 1300 Mh/s  - Suggested BlockSize: 64
+* GTX1050:    550 Mh/s  - Suggested BlockSize: 64
+* Tesla K80:  451 Mh/s  - Suggested BlockSize: 128
+* 750TI:      323 Mh/s  - Suggested BlockSize: 32
 
 Default BlockSize is 64.
 Default NumBlocks is 96.
@@ -50,8 +50,8 @@ Advanced Usage Template:
 AmoveoMinerGpuCuda.exe <Base64AmoveoAddress> <CudaDeviceId> <BlockSize> <NumBlocks> <RandomSeed> <SuffixMax> <PoolUrl>
 ```
 * CudaDeviceId is optional an defaults to 0.
-* BlockSize is optional and defaults to 256.
-* NumBlocks is optional and defaults to 65536
+* BlockSize is optional and defaults to 64.
+* NumBlocks is optional and defaults to 96.
 * RandomSeed is optional. Set this if you want multiple miners using the same address to avoid nonce collisions.
 * SuffixMax optional and defaults to 65536. Do NOT use anything higher than 65536. Lower numbers reduce OS lag and will reduce hash rate by a few percent.
 * PoolUrl is optional and defaults to http://amoveopool.com/work
