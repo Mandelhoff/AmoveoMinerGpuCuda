@@ -164,12 +164,11 @@ __device__ void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len)
 	}
 }
 
-__device__ void sha256_updateAmoveoSpecial(SHA256_CTX *ctx)
+__device__ void sha256_updateAmoveoCtxTrailer(SHA256_CTX *ctx)
 {
-	ctx->data[2] = 0x80;
-	memset(&ctx->data[3], 0, 53);
+	ctx->data[55] = 0x80;
 
-	ctx->bitlen = 528;
+	ctx->bitlen = 440;
 	ctx->data[63] = ctx->bitlen;
 	ctx->data[62] = ctx->bitlen >> 8;
 	ctx->data[61] = ctx->bitlen >> 16;
@@ -180,10 +179,33 @@ __device__ void sha256_updateAmoveoSpecial(SHA256_CTX *ctx)
 	ctx->data[56] = ctx->bitlen >> 56;
 }
 
+__device__ void sha256_updateAmoveoSpecial(SHA256_CTX *ctx, const BYTE data[])
+{
+	ctx->data[47] = data[0];
+	ctx->data[48] = data[1];
+	ctx->data[49] = data[2];
+	ctx->data[50] = data[3];
+	ctx->data[51] = data[4];
+	ctx->data[52] = data[5];
+/*
+	ctx->data[55] = 0x80;
+
+	ctx->bitlen = 440;
+	ctx->data[63] = ctx->bitlen;
+	ctx->data[62] = ctx->bitlen >> 8;
+	ctx->data[61] = ctx->bitlen >> 16;
+	ctx->data[60] = ctx->bitlen >> 24;
+	ctx->data[59] = ctx->bitlen >> 32;
+	ctx->data[58] = ctx->bitlen >> 40;
+	ctx->data[57] = ctx->bitlen >> 48;
+	ctx->data[56] = ctx->bitlen >> 56;
+*/
+}
+
 __device__ void sha256_finalAmoveo(SHA256_CTX *ctx, const BYTE data[], BYTE hash[])
 {
-	ctx->data[0] = data[0];
-	ctx->data[1] = data[1];
+	ctx->data[53] = data[0];
+	ctx->data[54] = data[1];
 
 	sha256_transform(ctx, ctx->data);
 
@@ -222,21 +244,6 @@ __device__ void sha256_finalAmoveo(SHA256_CTX *ctx, const BYTE data[], BYTE hash
 	hash[23] = ctx->state[5] & 0x000000ff;
 	hash[27] = ctx->state[6] & 0x000000ff;
 	hash[31] = ctx->state[7] & 0x000000ff;
-
-/*
-	// Since this implementation uses little endian byte ordering and SHA uses big endian,
-	// reverse all the bytes when copying the final state to the output hash.
-	for (WORD i = 0; i < 4; ++i) {
-
-		hash[i] = (ctx->state[0] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 4] = (ctx->state[1] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 8] = (ctx->state[2] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 12] = (ctx->state[3] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 16] = (ctx->state[4] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 20] = (ctx->state[5] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 24] = (ctx->state[6] >> (24 - i * 8)) & 0x000000ff;
-		hash[i + 28] = (ctx->state[7] >> (24 - i * 8)) & 0x000000ff;
-	}*/
 }
 
 __device__ void sha256_final(SHA256_CTX *ctx, BYTE hash[])

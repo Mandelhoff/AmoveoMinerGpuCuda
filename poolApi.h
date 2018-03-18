@@ -25,7 +25,7 @@ public:
 public:
 	WorkData() {
 		bhash = vector<unsigned char>(32);
-		nonce = vector<unsigned char>(24);
+		nonce = vector<unsigned char>(15);
 	}
 
 	bool HasNewWork() { return newWork; }

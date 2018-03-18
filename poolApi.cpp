@@ -49,8 +49,7 @@ void PoolApi::SubmitWork(string_t poolUrl, string nonceBase64, string minerPubli
 	try
 	{
 		http_response response = client.request(request).get();
-		if (response.status_code() == status_codes::OK)
-		{
+		if (response.status_code() == status_codes::OK) {
 			// Response data comes in as application/octet-stream, so extract_json throws an exception
 			// Need to use extract_vector and then convert to string and then to json
 			std::vector<unsigned char> responseData = response.extract_vector().get();
@@ -60,6 +59,8 @@ void PoolApi::SubmitWork(string_t poolUrl, string nonceBase64, string minerPubli
 			if (successResponse.compare(responseString) != 0) {
 				wcout << "Info: " << responseString << endl;
 			}
+		} else {
+			wcout << "ERROR: SubmitWork response code: " << response.status_code() << endl;
 		}
 	}
 	catch (...) {
