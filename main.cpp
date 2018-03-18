@@ -1,4 +1,4 @@
-#define VERSION_STRING "2.0.0.0"
+#define VERSION_STRING "2.0.0.1"
 #define TOOL_NAME "AmoveoMinerGpuCuda"
 
 #include <iostream>
@@ -49,7 +49,7 @@ using namespace utility;									// Common utilities like string conversions
 int gElapsedMilliSecMax = FETCH_WORK_INTERVAL_MS;
 
 //#define POOL_URL "http://localhost:32371/work"	// local pool
-#define POOL_URL "http://amoveopool.com/work"
+#define POOL_URL "http://amoveopool2.com/work"
 #define MINER_ADDRESS "BPA3r0XDT1V8W4sB14YKyuu/PgC6ujjYooVVzq1q1s5b6CAKeu9oLfmxlplcPd+34kfZ1qx+Dwe3EeoPu0SpzcI="
 #define DEFAULT_DEVICE_ID 0
 
