@@ -49,7 +49,7 @@ using namespace utility;									// Common utilities like string conversions
 int gElapsedMilliSecMax = FETCH_WORK_INTERVAL_MS;
 
 //#define POOL_URL "http://localhost:32371/work"	// local pool
-#define POOL_URL "http://amoveopool.com/work"
+#define POOL_URL "http://amoveopool2.com/work"
 #define MINER_ADDRESS "BPA3r0XDT1V8W4sB14YKyuu/PgC6ujjYooVVzq1q1s5b6CAKeu9oLfmxlplcPd+34kfZ1qx+Dwe3EeoPu0SpzcI="
 #define DEFAULT_DEVICE_ID 0
 
@@ -310,7 +310,7 @@ int main(int argc, char* argv[])
 		cout << "NumBlocks is optional. Default NumBlocks is 96" << endl;
 		cout << "RandomSeed is optional. No default." << endl;
 		cout << "SuffixMax is optional. Default is 65536" << endl;
-		cout << "PoolUrl is optional. Default PoolUrl is http://amoveopool.com/work" << endl;
+		cout << "PoolUrl is optional. Default PoolUrl is http://amoveopool2.com/work" << endl;
 		return -1;
 	}
 	if (argc >= 2) {
