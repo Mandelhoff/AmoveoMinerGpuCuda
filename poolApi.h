@@ -7,6 +7,8 @@
 using namespace std;
 using namespace utility;                    // Common utilities like string conversions
 
+void mySleep(unsigned milliseconds);
+
 class WorkData
 {
 private:

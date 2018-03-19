@@ -88,12 +88,12 @@ void PoolApi::GetWork(string_t poolUrl, WorkData * pMinerThreadData, string mine
 				// Need to use extract_vector and then convert to string and then to json
 				std::vector<unsigned char> responseData = response.extract_vector().get();
 
-				wstring responseString(responseData.begin(), responseData.end());
+				string responseString(responseData.begin(), responseData.end());
 
 				json::value jsonResponse = json::value::parse(responseString);
 				json::array dataArray = jsonResponse.as_array();
 
-				wstring wBHhashBase64(dataArray[1].at(1).as_string().c_str());
+				string wBHhashBase64(dataArray[1].at(1).as_string().c_str());
 				string bhashBase64(wBHhashBase64.begin(), wBHhashBase64.end());
 				string bhashString = base64_decode(bhashBase64);
 				vector<unsigned char> bhash(bhashString.begin(), bhashString.end());
