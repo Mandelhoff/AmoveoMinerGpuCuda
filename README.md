@@ -1,5 +1,5 @@
 # AmoveoMinerGpuCuda
-Amoveo Cryptocurrency Miner for Gpu work to be used with [AmoveoPool.com](http://AmoveoPool.com).
+Amoveo Cryptocurrency Miner for Gpu work to be used with [AmoveoPool.com](http://AmoveoPool2.com).
 
 Tested Gpu Speeds:
 
