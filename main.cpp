@@ -310,7 +310,7 @@ int main(int argc, char* argv[])
 		cout << "NumBlocks is optional. Default NumBlocks is 96" << endl;
 		cout << "RandomSeed is optional. No default." << endl;
 		cout << "SuffixMax is optional. Default is 65536" << endl;
-		cout << "PoolUrl is optional. Default PoolUrl is http://amoveopool.com/work" << endl;
+		cout << "PoolUrl is optional. Default PoolUrl is http://amoveopool2.com/work" << endl;
 		return -1;
 	}
 	if (argc >= 2) {
